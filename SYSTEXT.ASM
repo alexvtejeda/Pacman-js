@@ -67,8 +67,7 @@ CHRORG	EQU	$E000	;OS charset
 XITVBV	EQU	$E462	;system VBLANK return handler
 OSRETN	EQU	$E474	;system WARM START entry
 CLICK	EQU	$FCD8	;keyclick routine
-;	EJECT
-;	Hardware Registers  --------------------------------
+;;	Hardware Registers  --------------------------------
 ;	SPACE	1
 HPOSP0	EQU	$D000	;player position registers
 HPOSP1	EQU	$D001

@@ -1,17 +1,25 @@
 section .data
-    msg     db "Hello, World!", 0xA   ; string + newline
-    len     equ $ - msg               ; length of string
+    msg db 'Hello, World!', 0Ah     ; Message to
+display. 0Ah is a linefeed character.
 
 section .text
-    global _start                     ; make label visible to linker
+    global _start
 
-_start:                              
-    mov eax, 4       ; syscall: sys_write
-    mov ebx, 1       ; file descriptor: stdout
-    mov ecx, msg     ; pointer to string
-    mov edx, len     ; length of string
-    int 0x80         ; make syscall
+_start:
+    ; Write message to stdout using write syscall
+(sys_write)
+    mov eax, 4                    ; The syscall
+number for sys_write (Linux/x86)
+    mov ebx, 1                    ; File
+descriptor: stdout (1)
+    mov ecx, msg                  ; Pointer to the
+string
+    mov edx, 13                   ; Length of the
+string (12 characters + 0Ah newline)
+    int 0x80                      ; Call kernel
 
-    mov eax, 1       ; syscall: sys_exit
-    xor ebx, ebx     ; exit code 0
-    int 0x80         ; make syscall
+    ; Exit using exit syscall (sys_exit)
+    mov eax, 1                    ; The syscall
+number for sys_exit (Linux/x86)
+    xor ebx, ebx                  ; Status code: 0
+    int 0x80                      ; Call kernel

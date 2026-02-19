@@ -1,25 +1,18 @@
 section .data
-    msg db 'Hello, World!', 0Ah     ; Message to
-display. 0Ah is a linefeed character.
+    hello db 'Hello, world!',0
 
 section .text
     global _start
-
 _start:
-    ; Write message to stdout using write syscall
-(sys_write)
-    mov eax, 4                    ; The syscall
-number for sys_write (Linux/x86)
-    mov ebx, 1                    ; File
-descriptor: stdout (1)
-    mov ecx, msg                  ; Pointer to the
-string
-    mov edx, 13                   ; Length of the
-string (12 characters + 0Ah newline)
-    int 0x80                      ; Call kernel
 
-    ; Exit using exit syscall (sys_exit)
-    mov eax, 1                    ; The syscall
-number for sys_exit (Linux/x86)
-    xor ebx, ebx                  ; Status code: 0
-    int 0x80                      ; Call kernel
+    ; write(1, hello, 13)
+    mov eax, 4   ; syscall number (sys_write)
+    mov ebx, 1   ; file descriptor (stdout)
+    mov ecx, hello ; message to write
+    mov edx, 13 ; message length
+    int 0x80     ; call kernel
+
+    ; exit(0)
+    mov eax, 1   ; syscall number (sys_exit)
+    xor ebx, ebx ; exit code
+    int 0x80     ; call kernel

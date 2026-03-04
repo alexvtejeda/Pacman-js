@@ -4,18 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is the original Atari Pac-Man source code — a 6502 assembly language port of Pac-Man for the Atari 8-bit computer platform, developed by Roklan Corp for Atari Inc. (Revision 3.0, 10/03/82). Despite the repository name "Pacman-js", this is **not JavaScript** — it is pure 6502 assembly.
+This is the original Atari Pac-Man source code — a 6502 assembly language port of Pac-Man for the Atari 8-bit computer platform, developed by Roklan Corp for Atari Inc. (Revision 3.0, 10/03/82). Despite the repository name "Pacman-js", this is **not JavaScript** — it is pure 6502 assembly in MADS-compatible syntax.
 
-## Build & Assembly
+## Build & Run
 
-There is no build system (no Makefile, package.json, etc.). To assemble, you need a 6502/Atari cross-assembler such as:
-- [DASM](https://dasm-assembler.github.io/)
-- [MAC/65](https://en.wikipedia.org/wiki/MAC/65) (native Atari)
-- [mads](https://mads.atari8.info/)
+MADS assembler is bundled in the repo. To assemble:
 
-The main entry point is `PACMAN.ASM`, which includes `SYSTEXT.ASM`.
+```bash
+./Mad-Assembler-2.1.6/bin/linux_x86_64/mads PACMAN.ASM -o:pacman.xex
+```
 
-To run the assembled binary, use an Atari 8-bit emulator (e.g., [Altirra](https://www.virtualdub.org/altirra.html)).
+This produces `pacman.xex` (~14KB). To run:
+
+```bash
+atari800 -nobasic pacman.xex
+```
+
+Press **F4** (START) to begin the game; arrow keys control Pac-Man (mapped to joystick in `~/.atari800.cfg`).
+
+## Source Syntax
+
+The source was originally written for the MAC/65 assembler on native Atari hardware and has been converted to MADS syntax. Key differences from "raw" MAC/65:
+
+| MAC/65 original | MADS (used here) |
+|-----------------|------------------|
+| `INCLUDE file`  | `ICL 'file'`     |
+| `DS n`          | `.DS n`          |
+| `DB val`        | `.BYTE val`      |
+| `DW val`        | `.WORD val`      |
+| `HIGH expr`     | `>expr`          |
+| `LOW expr`      | `<expr`          |
+| `ASL A`         | `ASL`            |
+| `EJECT`/`LIST I`| removed          |
+
+Any future edits to the `.ASM` files must use MADS syntax.
 
 ## Code Architecture
 
@@ -36,11 +58,45 @@ ATARISYS.ASM    — Empty placeholder file
 
 ### Key Architectural Patterns
 
-- **Zero-page variables** (`PACMAN.ASM`): All global game state lives in zero-page RAM for fast 6502 access — player positions, scores, dot counts, timers, maze data, monster states.
+- **Zero-page variables** (`PACMAN.ASM`): All global game state lives in zero-page RAM (starting at `$0018`) for fast 6502 access — player positions, scores, dot counts, timers, maze data, monster states.
 - **Vertical Blank Interrupt (VBI)** (`PAC1.ASM`): Game logic runs synchronized to the TV's vertical blank, a standard Atari 8-bit pattern.
 - **Player/Missile Graphics** (`PAC3.ASM`): Atari hardware sprites ("Players" and "Missiles") used for Pac-Man and ghost rendering.
 - **POKEY/GTIA/ANTIC registers** (`SYSTEXT.ASM`): Hardware-mapped I/O at fixed addresses for audio, display list, color, and input.
 
-## Git Notes
+## Known Fix vs. Cartridge ROM
 
-Documentation files (README.md, LICENSE, CODE_OF_CONDUCT.md, SECURITY.md) appear deleted in the working tree but exist in git history. These were MIT-licensed (Copyright 2023 Dillon Depeel).
+`PAC2.ASM` has a typo fix: `UDXPAC` → `UDXPACS`. The cartridge ROM versions found online have this bug, which causes a crash on level completion. This disk version does not.
+
+## Electron JS Translation Platform (`pacman-electron/`)
+
+A second sub-project exists: a complete Electron runtime that hosts a subroutine-by-subroutine JavaScript translation of the 6502 assembly.
+
+### To run
+```bash
+cd pacman-electron && npm install && npm start
+```
+
+### Architecture
+| File | Role |
+|------|------|
+| `src/runtime.js` | 64KB `mem[]`, `cpu{}` registers, all 6502 ALU helpers (`adc`/`sbc`/BCD, shifts, compare, stack), `ADDR` symbol table |
+| `src/hardware.js` | Dispatches `$D000–$D4FF` reads/writes (GTIA/POKEY/ANTIC/PIA) |
+| `src/audio.js` | 4-channel POKEY → Web Audio (standard POKEY freq formula) |
+| `src/input.js` | Arrow keys → `STICK0`/`PORTA`; F2/F3/F4 → `CONSOL ($D01F)` |
+| `src/renderer.js` | ANTIC mode-4 maze (40×24 2bpp) + Player/Missile sprite rendering + collision writes to `$D008–$D00F` |
+| `src/gameloop.js` | 60fps loop: `tickRTCLOK → VBLANK() → render()`; wires `registerHardware()` callback to break circular deps |
+| `src/data.js` | All `PACDATx` tables as `Uint8Arrays`, copied into `mem[]` starting at `$4000` |
+| `translated/*.js` | Subroutine stubs — one file per ASM source (`pacman.js`, `pac1.js`–`pac4.js`) |
+| `TRANSLATION_GUIDE.md` | Complete opcode→JS reference for filling in stubs |
+
+**Key addresses:** `ADDR.PACMAZ = 0x1400` (GAMMEM=`$0800` + `$0C00`); `PACCHR` at `$4000`; `DATMAZ` at `$4398`.
+
+**No circular imports:** `runtime.js` exposes `registerHardware(r,w)` callback; `input.js` writes directly to `mem[]`.
+
+## Repository Notes
+
+- `rawCode/` — original unmodified MAC/65 source files before MADS conversion (reference only).
+- `benchmarking/` — unrelated x86 "Hello World" assembly experiments from LLM comparisons.
+- `tasks/todo.md` — historical log of completed work.
+- `clean_zone_ids.sh` — removes Windows `Zone.Identifier` files from the MADS assembler directory (run after downloading on WSL).
+- Documentation files (README.md, LICENSE, etc.) appear deleted in the working tree but exist in git history (MIT-licensed, Copyright 2023 Dillon Depeel).

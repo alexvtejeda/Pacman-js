@@ -6,6 +6,7 @@ function createWindow() {
     width: 480,
     height: 576,
     resizable: false,
+    icon: path.join(__dirname, 'pacmanLogo.png'),
   });
   win.loadFile('index.html');
 }

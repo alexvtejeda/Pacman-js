@@ -76,9 +76,13 @@ A second sub-project exists: a complete Electron runtime that hosts a subroutine
 cd pacman-electron && npm install && npm start
 ```
 
+To package a distributable: `npm run make` (output in `out/`; packaging configured in `forge.config.js`)
+
 ### Architecture
 | File | Role |
 |------|------|
+| `main.js` | Electron main process — opens a fixed 480×576 `BrowserWindow` loading `index.html` |
+| `index.html` | Shell: 480×576 `<canvas id="screen">`, loads `src/gameloop.js` as ES module entry point |
 | `src/runtime.js` | 64KB `mem[]`, `cpu{}` registers, all 6502 ALU helpers (`adc`/`sbc`/BCD, shifts, compare, stack), `ADDR` symbol table |
 | `src/hardware.js` | Dispatches `$D000–$D4FF` reads/writes (GTIA/POKEY/ANTIC/PIA) |
 | `src/audio.js` | 4-channel POKEY → Web Audio (standard POKEY freq formula) |
@@ -96,6 +100,7 @@ cd pacman-electron && npm install && npm start
 ## Repository Notes
 
 - `rawCode/` — original unmodified MAC/65 source files before MADS conversion (reference only).
+- `clean_for_llm.py` — strips blank lines from an ASM file for LLM token efficiency. Output goes to `rawCode/<filename>`. Usage: `python3 clean_for_llm.py PAC1.ASM`
 - `benchmarking/` — unrelated x86 "Hello World" assembly experiments from LLM comparisons.
 - `tasks/todo.md` — historical log of completed work.
 - `clean_zone_ids.sh` — removes Windows `Zone.Identifier` files from the MADS assembler directory (run after downloading on WSL).
